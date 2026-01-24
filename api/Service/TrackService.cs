@@ -33,7 +33,7 @@ public class TrackService : ITrackService
     {
         var track = await _trackRepository.GetTrackAsync(trackId);
 
-        if (track is null || track.UserId != userId.ToString())
+        if (track is null || track.UserId != userId)
             return null;
 
         return track.ToGetTrackRequestFromTrack();
@@ -42,7 +42,7 @@ public class TrackService : ITrackService
     public async Task<Track> CreateTrackAsync(Guid userId, CreateTrackRequest request)
     {
         var trackModel = await _trackRepository.CreateTrackAsync(
-            request.ToTrackFromCreateTrackRequest(userId.ToString()));
+            request.ToTrackFromCreateTrackRequest(userId));
 
         return trackModel;
     }
@@ -51,7 +51,7 @@ public class TrackService : ITrackService
     {
         var existingTrack = await _trackRepository.GetTrackAsync(trackId);
 
-        if (existingTrack is null || existingTrack.UserId != userId.ToString())
+        if (existingTrack is null || existingTrack.UserId != userId)
             return null;
 
         var updatedTrack = await _trackRepository.UpdateTrackAsync(userId, trackId, request);

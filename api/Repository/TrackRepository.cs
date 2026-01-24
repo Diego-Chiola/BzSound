@@ -25,7 +25,7 @@ public class TrackRepository : ITrackRepository
 
     public async Task<Track?> DeleteTrackAsync(Guid userId, int trackId)
     {
-        var track = await _context.Tracks.FirstOrDefaultAsync(t => t.Id == trackId && t.UserId == userId.ToString());
+        var track = await _context.Tracks.FirstOrDefaultAsync(t => t.Id == trackId && t.UserId == userId);
         if (track is null) return null;
 
         _context.Tracks.Remove(track);
@@ -51,7 +51,7 @@ public class TrackRepository : ITrackRepository
 
     public async Task<Track?> UpdateTrackAsync(Guid userId, int trackId, UpdateTrackRequest newTrack)
     {
-        var existingTrack = await _context.Tracks.FirstOrDefaultAsync(t => t.Id == trackId && t.UserId == userId.ToString());
+        var existingTrack = await _context.Tracks.FirstOrDefaultAsync(t => t.Id == trackId && t.UserId == userId);
         if (existingTrack == null)
             return null;
 
@@ -67,7 +67,7 @@ public class TrackRepository : ITrackRepository
     {
         if (q == null) return query;
 
-        query = query.Where(t => t.UserId == userId.ToString());
+        query = query.Where(t => t.UserId == userId);
         if (!string.IsNullOrWhiteSpace(q.TitleContains))
             query = query.Where(t => t.Title.Contains(q.TitleContains));
 

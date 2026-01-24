@@ -1,0 +1,193 @@
+.audio-editor {
+  width: 100%;
+}
+
+.editor-card {
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.editor-card h2 {
+  margin: 0 0 20px 0;
+  color: #667eea;
+  font-size: 1.8rem;
+}
+
+.editor-card h3 {
+  margin: 30px 0 15px 0;
+  color: #667eea;
+  font-size: 1.4rem;
+}
+
+.file-upload {
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.upload-btn {
+  display: inline-block;
+  padding: 12px 24px;
+  background: #667eea;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.upload-btn:hover {
+  background: #5568d3;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.file-name {
+  color: #666;
+  font-style: italic;
+}
+
+.waveform-container {
+  position: relative;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.waveform {
+  width: 100%;
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: #667eea;
+  font-weight: 600;
+  border-radius: 8px;
+}
+
+.time-display {
+  text-align: center;
+  font-size: 1.1rem;
+  color: #666;
+  margin-bottom: 20px;
+  font-family: 'Courier New', monospace;
+}
+
+.time-display span {
+  margin: 0 5px;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.control-btn {
+  padding: 12px 20px;
+  border: 2px solid #667eea;
+  background: white;
+  color: #667eea;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.control-btn:hover:not(:disabled) {
+  background: #667eea;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.control-btn.primary {
+  background: #667eea;
+  color: white;
+}
+
+.control-btn.primary:hover {
+  background: #5568d3;
+}
+
+.control-btn.save {
+  background: #10b981;
+  border-color: #10b981;
+  color: white;
+}
+
+.control-btn.save:hover:not(:disabled) {
+  background: #059669;
+  border-color: #059669;
+}
+
+.control-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.login-prompt {
+  text-align: center;
+  padding: 15px;
+  background: #fef3c7;
+  border-radius: 8px;
+  color: #92400e;
+  font-weight: 500;
+  margin-top: 20px;
+}
+
+.tracks-list {
+  margin-top: 30px;
+  padding-top: 30px;
+  border-top: 2px solid #e0e0e0;
+}
+
+.tracks-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tracks-list li {
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s;
+}
+
+.tracks-list li:hover {
+  background: #e9ecef;
+  transform: translateX(5px);
+}
+
+.track-title {
+  font-weight: 600;
+  color: #333;
+}
+
+.track-date {
+  color: #666;
+  font-size: 0.9rem;
+}

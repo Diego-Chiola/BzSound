@@ -15,7 +15,7 @@ public static class TrackMappers
             FilePath = trackModel.FilePath,
         };
     }
-    public static Track ToTrackFromCreateTrackRequest(this CreateTrackRequest request, string userId)
+    public static Track ToTrackFromCreateTrackRequest(this CreateTrackRequest request, Guid userId)
     {
         return new Track
         {

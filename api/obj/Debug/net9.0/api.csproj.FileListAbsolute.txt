@@ -161,6 +161,7 @@ C:\Users\chiol\Desktop\app\BzSound\api\obj\Debug\net9.0\api.AssemblyInfo.cs
 C:\Users\chiol\Desktop\app\BzSound\api\obj\Debug\net9.0\api.csproj.CoreCompileInputs.cache
 C:\Users\chiol\Desktop\app\BzSound\api\obj\Debug\net9.0\api.MvcApplicationPartsAssemblyInfo.cs
 C:\Users\chiol\Desktop\app\BzSound\api\obj\Debug\net9.0\api.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\chiol\Desktop\app\BzSound\api\obj\Debug\net9.0\api.sourcelink.json
 C:\Users\chiol\Desktop\app\BzSound\api\obj\Debug\net9.0\rjimswa.dswa.cache.json
 C:\Users\chiol\Desktop\app\BzSound\api\obj\Debug\net9.0\rjsmrazor.dswa.cache.json
 C:\Users\chiol\Desktop\app\BzSound\api\obj\Debug\net9.0\rjsmcshtml.dswa.cache.json

@@ -61,7 +61,7 @@ builder.Services.AddDbContext<ApplicationDBContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
-builder.Services.AddIdentity<AppUser, IdentityRole>(Options =>
+builder.Services.AddIdentity<AppUser, IdentityRole<Guid>>(Options =>
 {
     Options.Password.RequireDigit = true;
     Options.Password.RequireLowercase = true;
