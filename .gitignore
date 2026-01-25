@@ -10,6 +10,7 @@ obj/
 .vs/
 appsettings.Development.json
 appsettings.Production.json
+appsettings.json
 
 # Frontend (Node.js)
 node_modules/
