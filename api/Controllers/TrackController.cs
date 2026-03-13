@@ -8,25 +8,138 @@ using api.Interfaces;
 
 namespace api.Controllers;
 
-[Authorize]
 [ApiController]
-[Route("api/users/{userId:guid}/tracks")]
+[Route("api/tracks")]
 public class TrackController : ControllerBase
 {
     private readonly ITrackService _trackService;
-    private readonly IWebHostEnvironment _environment;
     private readonly ILogger<TrackController> _logger;
-    private const long MaxFileSize = 50 * 1024 * 1024; // 50MB
-    private static readonly string[] AllowedExtensions = { ".mp3", ".wav", ".ogg", ".m4a", ".flac" };
 
-    public TrackController(ITrackService trackService, IWebHostEnvironment environment, ILogger<TrackController> logger)
+    public TrackController(ITrackService trackService, ILogger<TrackController> logger)
     {
         _trackService = trackService;
-        _environment = environment;
         _logger = logger;
     }
 
-    [HttpGet]
+    #region Anonymous Endpoints (Temporary Track Operations)
+
+    /// <summary>
+    /// Upload a temporary audio file (no authentication required)
+    /// File will be stored temporarily and can be saved permanently after authentication
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPost("temp/upload")]
+    public async Task<IActionResult> UploadTempTrack([FromForm] IFormFile file, [FromForm] string? title)
+    {
+        var validation = _trackService.ValidateFile(file);
+        if (!validation.IsValid)
+            return BadRequest(new { message = validation.ErrorMessage });
+
+        try
+        {
+            var result = await _trackService.UploadTempTrackAsync(file, title);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading temporary track file");
+            return StatusCode(500, new { message = "Error uploading file." });
+        }
+    }
+
+    /// <summary>
+    /// Get temporary track info by temp ID (no authentication required)
+    /// </summary>
+    [AllowAnonymous]
+    [HttpGet("temp/{tempId}")]
+    public async Task<IActionResult> GetTempTrack(string tempId)
+    {
+        var tempTrack = await _trackService.GetTempTrackAsync(tempId);
+        if (tempTrack == null)
+            return NotFound(new { message = "Temporary track not found or expired." });
+
+        return Ok(tempTrack);
+    }
+
+    /// <summary>
+    /// Update/replace a temporary track file (no authentication required)
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPut("temp/{tempId}")]
+    public async Task<IActionResult> UpdateTempTrack(string tempId, [FromForm] IFormFile file)
+    {
+        var validation = _trackService.ValidateFile(file);
+        if (!validation.IsValid)
+            return BadRequest(new { message = validation.ErrorMessage });
+
+        try
+        {
+            var result = await _trackService.UpdateTempTrackFileAsync(tempId, file);
+            if (result == null)
+                return NotFound(new { message = "Temporary track not found or expired." });
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating temporary track file");
+            return StatusCode(500, new { message = "Error updating file." });
+        }
+    }
+
+    /// <summary>
+    /// Delete a temporary track (no authentication required)
+    /// </summary>
+    [AllowAnonymous]
+    [HttpDelete("temp/{tempId}")]
+    public async Task<IActionResult> DeleteTempTrack(string tempId)
+    {
+        var deleted = await _trackService.DeleteTempTrackAsync(tempId);
+        if (!deleted)
+            return NotFound(new { message = "Temporary track not found." });
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Save a temporary track permanently (requires authentication)
+    /// </summary>
+    [Authorize]
+    [HttpPost("temp/{tempId}/save")]
+    public async Task<IActionResult> SaveTempTrack(string tempId, [FromBody] SaveTempTrackRequest request)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(currentUserId) || !Guid.TryParse(currentUserId, out var userId))
+            return Unauthorized(new { message = "User not authenticated." });
+
+        if (!await _trackService.UserExistsAsync(userId))
+            return BadRequest(new { message = "User does not exist." });
+
+        // Ensure the tempId in route matches the request
+        request.TempId = tempId;
+
+        try
+        {
+            var track = await _trackService.SaveTempTrackAsync(userId, request);
+            return CreatedAtAction(nameof(GetTrack), new { userId, trackId = track.Id }, track);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving temporary track");
+            return StatusCode(500, new { message = "Error saving track." });
+        }
+    }
+
+    #endregion
+
+    #region Authenticated Endpoints (Permanent Track Operations)
+
+    [Authorize]
+    [HttpGet("~/api/users/{userId:guid}/tracks")]
     public async Task<IActionResult> GetTracksByUser(Guid userId, [FromQuery] TrackQueryObject query)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -41,8 +154,8 @@ public class TrackController : ControllerBase
         return Ok(track);
     }
 
-    /*** Added method to get track by its ID ***/
-    [HttpGet("{trackId:int}")]
+    [Authorize]
+    [HttpGet("~/api/users/{userId:guid}/tracks/{trackId:int}")]
     public async Task<IActionResult> GetTrack(Guid userId, int trackId)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -60,9 +173,10 @@ public class TrackController : ControllerBase
     }
 
     /// <summary>
-    /// Upload audio file and create track (requires authentication)
+    /// Upload and save audio file directly (requires authentication)
     /// </summary>
-    [HttpPost("upload")]
+    [Authorize]
+    [HttpPost("~/api/users/{userId:guid}/tracks/upload")]
     public async Task<IActionResult> UploadTrack(Guid userId, [FromForm] IFormFile file, [FromForm] string? title)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -72,43 +186,22 @@ public class TrackController : ControllerBase
         if (!await _trackService.UserExistsAsync(userId))
             return BadRequest("User does not exist.");
 
-        if (file == null || file.Length == 0)
-            return BadRequest(new { message = "No file uploaded." });
-
-        if (file.Length > MaxFileSize)
-            return BadRequest(new { message = $"File size exceeds maximum allowed size of {MaxFileSize / (1024 * 1024)}MB." });
-
-        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-        if (!AllowedExtensions.Contains(extension))
-            return BadRequest(new { message = $"Invalid file type. Allowed types: {string.Join(", ", AllowedExtensions)}" });
+        var validation = _trackService.ValidateFile(file);
+        if (!validation.IsValid)
+            return BadRequest(new { message = validation.ErrorMessage });
 
         try
         {
-            // Create user-specific directory
-            var userTracksPath = Path.Combine(_environment.ContentRootPath, "uploads", "tracks", userId.ToString());
-            Directory.CreateDirectory(userTracksPath);
-
-            // Generate unique filename
-            var uniqueFileName = $"{DateTime.UtcNow:yyyyMMdd_HHmmss}_{Guid.NewGuid()}{extension}";
-            var filePath = Path.Combine(userTracksPath, uniqueFileName);
-
-            // Save file
-            using (var stream = new FileStream(filePath, FileMode.Create))
+            // Upload to temp first, then save permanently
+            var tempResult = await _trackService.UploadTempTrackAsync(file, title);
+            var saveRequest = new SaveTempTrackRequest
             {
-                await file.CopyToAsync(stream);
-            }
-
-            var trackTitle = string.IsNullOrWhiteSpace(title) ? Path.GetFileNameWithoutExtension(file.FileName) : title;
-            var relativeFilePath = $"/uploads/tracks/{userId}/{uniqueFileName}";
-
-            var createRequest = new CreateTrackRequest
-            {
-                Title = trackTitle,
-                FilePath = relativeFilePath
+                TempId = tempResult.TempId,
+                Title = tempResult.Title
             };
 
-            var trackModel = await _trackService.CreateTrackAsync(userId, createRequest);
-            return CreatedAtAction(nameof(GetTrack), new { userId, trackId = trackModel.Id }, trackModel);
+            var track = await _trackService.SaveTempTrackAsync(userId, saveRequest);
+            return CreatedAtAction(nameof(GetTrack), new { userId, trackId = track.Id }, track);
         }
         catch (Exception ex)
         {
@@ -117,7 +210,8 @@ public class TrackController : ControllerBase
         }
     }
 
-    [HttpPost]
+    [Authorize]
+    [HttpPost("~/api/users/{userId:guid}/tracks")]
     public async Task<IActionResult> CreateTrack(Guid userId, [FromBody] CreateTrackRequest newTrack)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -131,7 +225,8 @@ public class TrackController : ControllerBase
         return CreatedAtAction(nameof(GetTrack), new { userId, trackId = trackModel.Id }, trackModel);
     }
 
-    [HttpPut("{trackId:int}")]
+    [Authorize]
+    [HttpPut("~/api/users/{userId:guid}/tracks/{trackId:int}")]
     public async Task<IActionResult> UpdateTrack(Guid userId, int trackId, [FromBody] UpdateTrackRequest newTrack)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -146,7 +241,8 @@ public class TrackController : ControllerBase
         return Ok(existingTrack);
     }
 
-    [HttpDelete("{trackId:int}")]
+    [Authorize]
+    [HttpDelete("~/api/users/{userId:guid}/tracks/{trackId:int}")]
     public async Task<IActionResult> DeleteTrack(Guid userId, [FromRoute] int trackId)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -159,4 +255,6 @@ public class TrackController : ControllerBase
 
         return NoContent();
     }
+
+    #endregion
 }
