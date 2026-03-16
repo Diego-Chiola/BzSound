@@ -25,5 +25,5 @@
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
-  "proxy": "http://localhost:5000"
+  "proxy": "http://localhost:5068"
 }
