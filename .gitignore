@@ -11,6 +11,7 @@ obj/
 appsettings.Development.json
 appsettings.Production.json
 appsettings.json
+uploads/
 
 # Frontend (Node.js)
 node_modules/

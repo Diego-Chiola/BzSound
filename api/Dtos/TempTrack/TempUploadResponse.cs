@@ -1,8 +1,9 @@
-namespace api.Dtos.Track;
+namespace api.Dtos.TempTrack;
 
 public class TempUploadResponse
 {
     public string TempId { get; set; } = string.Empty;
+    public string TempAccessToken { get; set; } = string.Empty;
     public string TempFilePath { get; set; } = string.Empty;
     public string OriginalFileName { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;

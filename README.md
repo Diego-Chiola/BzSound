@@ -46,12 +46,12 @@ dotnet ef database update
 
 **Useful Docker commands:**
 
-| Action | Command |
-|---|---|
-| Check container status | `docker ps` |
-| Stop the container | `docker stop bzsound-sql` |
-| Start it again later | `docker start bzsound-sql` |
-| View logs | `docker logs bzsound-sql` |
+| Action                 | Command                    |
+| ---------------------- | -------------------------- |
+| Check container status | `docker ps`                |
+| Stop the container     | `docker stop bzsound-sql`  |
+| Start it again later   | `docker start bzsound-sql` |
+| View logs              | `docker logs bzsound-sql`  |
 
 > **Note:** Use `docker start bzsound-sql` on subsequent runs — no need to recreate the container each time.
 
@@ -65,7 +65,7 @@ Update `appsettings.json` with your database connection string and JWT settings:
     "DefaultConnection": "Server=localhost,1433;Database=BzSoundDB;User Id=sa;Password=YourStrong!Pass123;TrustServerCertificate=True;"
   },
   "Jwt": {
-    "Key": "your-secret-key",
+    "SigningKey": "your-secret-key",
     "Issuer": "your-issuer",
     "Audience": "your-audience"
   }
@@ -73,6 +73,7 @@ Update `appsettings.json` with your database connection string and JWT settings:
 ```
 
 > **Security:** Avoid committing real credentials. Use [.NET User Secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets) for local development:
+>
 > ```bash
 > dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost,1433;Database=BzSoundDB;User Id=sa;Password=YourStrong!Pass123;TrustServerCertificate=True;"
 > ```

@@ -21,8 +21,11 @@ builder.Services.AddControllers();
 builder.Services.AddScoped<ITrackRepository, TrackRepository>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<ITrackService, TrackService>();
+builder.Services.AddScoped<ITempTrackService, TempTrackService>();
+builder.Services.AddScoped<ITempTokenService, TempTokenService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<IFileValidationService, FileValidationService>();
 
 builder.Services.AddSwaggerGen(option =>
 {

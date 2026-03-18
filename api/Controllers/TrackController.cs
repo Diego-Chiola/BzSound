@@ -13,130 +13,11 @@ namespace api.Controllers;
 public class TrackController : ControllerBase
 {
     private readonly ITrackService _trackService;
-    private readonly ILogger<TrackController> _logger;
 
-    public TrackController(ITrackService trackService, ILogger<TrackController> logger)
+    public TrackController(ITrackService trackService)
     {
         _trackService = trackService;
-        _logger = logger;
     }
-
-    #region Anonymous Endpoints (Temporary Track Operations)
-
-    /// <summary>
-    /// Upload a temporary audio file (no authentication required)
-    /// File will be stored temporarily and can be saved permanently after authentication
-    /// </summary>
-    [AllowAnonymous]
-    [HttpPost("temp/upload")]
-    public async Task<IActionResult> UploadTempTrack([FromForm] IFormFile file, [FromForm] string? title)
-    {
-        var validation = _trackService.ValidateFile(file);
-        if (!validation.IsValid)
-            return BadRequest(new { message = validation.ErrorMessage });
-
-        try
-        {
-            var result = await _trackService.UploadTempTrackAsync(file, title);
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error uploading temporary track file");
-            return StatusCode(500, new { message = "Error uploading file." });
-        }
-    }
-
-    /// <summary>
-    /// Get temporary track info by temp ID (no authentication required)
-    /// </summary>
-    [AllowAnonymous]
-    [HttpGet("temp/{tempId}")]
-    public async Task<IActionResult> GetTempTrack(string tempId)
-    {
-        var tempTrack = await _trackService.GetTempTrackAsync(tempId);
-        if (tempTrack == null)
-            return NotFound(new { message = "Temporary track not found or expired." });
-
-        return Ok(tempTrack);
-    }
-
-    /// <summary>
-    /// Update/replace a temporary track file (no authentication required)
-    /// </summary>
-    [AllowAnonymous]
-    [HttpPut("temp/{tempId}")]
-    public async Task<IActionResult> UpdateTempTrack(string tempId, [FromForm] IFormFile file)
-    {
-        var validation = _trackService.ValidateFile(file);
-        if (!validation.IsValid)
-            return BadRequest(new { message = validation.ErrorMessage });
-
-        try
-        {
-            var result = await _trackService.UpdateTempTrackFileAsync(tempId, file);
-            if (result == null)
-                return NotFound(new { message = "Temporary track not found or expired." });
-
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating temporary track file");
-            return StatusCode(500, new { message = "Error updating file." });
-        }
-    }
-
-    /// <summary>
-    /// Delete a temporary track (no authentication required)
-    /// </summary>
-    [AllowAnonymous]
-    [HttpDelete("temp/{tempId}")]
-    public async Task<IActionResult> DeleteTempTrack(string tempId)
-    {
-        var deleted = await _trackService.DeleteTempTrackAsync(tempId);
-        if (!deleted)
-            return NotFound(new { message = "Temporary track not found." });
-
-        return NoContent();
-    }
-
-    /// <summary>
-    /// Save a temporary track permanently (requires authentication)
-    /// </summary>
-    [Authorize]
-    [HttpPost("temp/{tempId}/save")]
-    public async Task<IActionResult> SaveTempTrack(string tempId, [FromBody] SaveTempTrackRequest request)
-    {
-        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(currentUserId) || !Guid.TryParse(currentUserId, out var userId))
-            return Unauthorized(new { message = "User not authenticated." });
-
-        if (!await _trackService.UserExistsAsync(userId))
-            return BadRequest(new { message = "User does not exist." });
-
-        // Ensure the tempId in route matches the request
-        request.TempId = tempId;
-
-        try
-        {
-            var track = await _trackService.SaveTempTrackAsync(userId, request);
-            return CreatedAtAction(nameof(GetTrack), new { userId, trackId = track.Id }, track);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error saving temporary track");
-            return StatusCode(500, new { message = "Error saving track." });
-        }
-    }
-
-    #endregion
-
-    #region Authenticated Endpoints (Permanent Track Operations)
 
     [Authorize]
     [HttpGet("~/api/users/{userId:guid}/tracks")]
@@ -170,44 +51,6 @@ public class TrackController : ControllerBase
             return NotFound();
 
         return Ok(track);
-    }
-
-    /// <summary>
-    /// Upload and save audio file directly (requires authentication)
-    /// </summary>
-    [Authorize]
-    [HttpPost("~/api/users/{userId:guid}/tracks/upload")]
-    public async Task<IActionResult> UploadTrack(Guid userId, [FromForm] IFormFile file, [FromForm] string? title)
-    {
-        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (currentUserId != userId.ToString())
-            return Forbid();
-
-        if (!await _trackService.UserExistsAsync(userId))
-            return BadRequest("User does not exist.");
-
-        var validation = _trackService.ValidateFile(file);
-        if (!validation.IsValid)
-            return BadRequest(new { message = validation.ErrorMessage });
-
-        try
-        {
-            // Upload to temp first, then save permanently
-            var tempResult = await _trackService.UploadTempTrackAsync(file, title);
-            var saveRequest = new SaveTempTrackRequest
-            {
-                TempId = tempResult.TempId,
-                Title = tempResult.Title
-            };
-
-            var track = await _trackService.SaveTempTrackAsync(userId, saveRequest);
-            return CreatedAtAction(nameof(GetTrack), new { userId, trackId = track.Id }, track);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error uploading track file");
-            return StatusCode(500, new { message = "Error uploading file." });
-        }
     }
 
     [Authorize]
@@ -255,6 +98,4 @@ public class TrackController : ControllerBase
 
         return NoContent();
     }
-
-    #endregion
 }
