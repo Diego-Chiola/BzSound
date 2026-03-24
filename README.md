@@ -13,7 +13,7 @@ A RESTful API for managing user audio tracks, built with ASP.NET Core.
 
 ### Prerequisites
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download)
+- [.NET 9 SDK](https://dotnet.microsoft.com/download)
 - [Docker](https://www.docker.com/get-started) (recommended) or a local SQL Server instance
 
 ### Installation
@@ -78,26 +78,129 @@ Update `appsettings.json` with your database connection string and JWT settings:
 > dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost,1433;Database=BzSoundDB;User Id=sa;Password=YourStrong!Pass123;TrustServerCertificate=True;"
 > ```
 
-## API Endpoints (not definitive)
+## API Endpoints
 
-All endpoints require a valid JWT Bearer token.
+Unless stated otherwise, endpoints require `Authorization: Bearer <token>`.
+
+### Authentication
+
+Base URL: `/api/auth`
+
+| Method | Endpoint    | Auth | Description             |
+| ------ | ----------- | ---- | ----------------------- |
+| `POST` | `/register` | No   | Register a new account  |
+| `POST` | `/login`    | No   | Login and get JWT token |
+
+#### Register Request
+
+`POST /api/auth/register`
+
+```json
+{
+  "username": "john",
+  "email": "john@example.com",
+  "password": "StrongPass123!"
+}
+```
+
+#### Login Request
+
+`POST /api/auth/login`
+
+```json
+{
+  "email": "john@example.com",
+  "password": "StrongPass123!"
+}
+```
+
+#### Auth Response
+
+```json
+{
+  "email": "john@example.com",
+  "token": "<jwt-token>"
+}
+```
+
+### Users
+
+Base URL: `/api/users`
+
+| Method   | Endpoint | Auth               | Description                 |
+| -------- | -------- | ------------------ | --------------------------- |
+| `GET`    | `/`      | Admin              | Get paginated users list    |
+| `GET`    | `/{id}`  | Owner or Admin     | Get user by id              |
+| `GET`    | `/me`    | Authenticated user | Get current user from token |
+| `PUT`    | `/{id}`  | Owner or Admin     | Update user email/password  |
+| `DELETE` | `/{id}`  | Owner or Admin     | Delete user                 |
+
+#### Update User Request
+
+`PUT /api/users/{id}`
+
+```json
+{
+  "email": "newmail@example.com",
+  "passwordHash": "NewPassword123!"
+}
+```
+
+### Tracks
 
 Base URL: `/api/users/{userId}/tracks`
 
-| Method   | Endpoint     | Description                             |
-| -------- | ------------ | --------------------------------------- |
-| `GET`    | `/`          | Get all tracks for a user               |
-| `GET`    | `/{trackId}` | Get a specific track by ID              |
-| `POST`   | `/`          | Create a track (with file path)         |
-| `POST`   | `/upload`    | Upload an audio file and create a track |
-| `PUT`    | `/{trackId}` | Update track metadata                   |
-| `DELETE` | `/{trackId}` | Delete a track                          |
+| Method   | Endpoint     | Auth  | Description                                     |
+| -------- | ------------ | ----- | ----------------------------------------------- |
+| `GET`    | `/`          | Owner | Get user tracks (supports filtering/pagination) |
+| `GET`    | `/{trackId}` | Owner | Get a single track                              |
+| `POST`   | `/`          | Owner | Create track from uploaded audio                |
+| `PUT`    | `/{trackId}` | Owner | Update title and/or replace uploaded file       |
+| `DELETE` | `/{trackId}` | Owner | Delete track and associated physical file       |
 
-### Upload a Track
+#### Get Tracks Query Params
 
-`POST /api/users/{userId}/tracks/upload`
+- `titleContains` (optional)
+- `pageNumber` (default: `1`)
+- `pageSize` (default: `20`)
+- `sortBy` (optional)
+- `isDescending` (default: `false`)
+
+#### Create Track
+
+`POST /api/users/{userId}/tracks`
 
 - **Content-Type:** `multipart/form-data`
 - **Form fields:**
-  - `file` _(required)_: Audio file
-  - `title` _(optional)_: Track title (defaults to filename)
+  - `file` _(required)_: audio file
+  - `title` _(optional, max 150 chars)_: defaults to uploaded filename
+
+Server behavior:
+
+- Validates extension: `.mp3`, `.wav`, `.ogg`, `.m4a`, `.flac`
+- Validates max size: `50MB`
+- Saves file to `/uploads/{userId}/{generatedName}`
+- Computes and stores metadata (file size, format, duration)
+
+#### Update Track
+
+`PUT /api/users/{userId}/tracks/{trackId}`
+
+- **Content-Type:** `multipart/form-data`
+- **Form fields (at least one required):**
+  - `title` _(optional, max 150 chars)_
+  - `file` _(optional)_: new audio file to replace existing one
+
+Server behavior:
+
+- Title-only update modifies DB title only
+- File update saves new file, refreshes metadata, and deletes old file
+
+#### Delete Track
+
+`DELETE /api/users/{userId}/tracks/{trackId}`
+
+Server behavior:
+
+- Deletes DB record
+- Deletes physical file from `/uploads/...`

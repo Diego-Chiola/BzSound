@@ -49,7 +49,7 @@ public class TrackRepository : ITrackRepository
         return await query.ToListAsync();
     }
 
-    public async Task<Track?> UpdateTrackAsync(Guid userId, int trackId, UpdateTrackRequest newTrack)
+    public async Task<Track?> UpdateTrackAsync(Guid userId, int trackId, UpdateTrackDataRequest newTrack)
     {
         var existingTrack = await _context.Tracks.FirstOrDefaultAsync(t => t.Id == trackId && t.UserId == userId);
         if (existingTrack == null)

@@ -10,4 +10,7 @@ public class GetTrackRequest
     public string Title { get; set; } = string.Empty;
     public DateTime LastModified { get; set; }
     public string FilePath { get; set; } = string.Empty;
+    public long FileSize { get; set; }
+    public string Format { get; set; } = string.Empty;
+    public long Duration { get; set; }
 }

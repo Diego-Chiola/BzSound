@@ -5,6 +5,7 @@ using api.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using api.Interfaces;
+using api.Mappers;
 
 namespace api.Controllers;
 
@@ -93,13 +94,13 @@ public class TrackController : ControllerBase
             duration: await _fileService.GetAudioDurationSecondsAsync(file) ?? 0);
 
         var trackModel = await _trackService.CreateTrackAsync(userId, newTrack);
-        return CreatedAtAction(nameof(GetTrack), new { userId, trackId = trackModel.Id }, trackModel);
+        return CreatedAtAction(nameof(GetTrack), new { userId, trackId = trackModel.Id }, trackModel.ToGetTrackRequestFromTrack());
     }
 
     [Authorize]
     [HttpPut("~/api/users/{userId:guid}/tracks/{trackId:int}")]
     [Consumes("multipart/form-data")]
-    public async Task<IActionResult> UpdateTrack(Guid userId, int trackId, [FromForm] UpdateTrackRequest newTrack)
+    public async Task<IActionResult> UpdateTrack(Guid userId, int trackId, [FromForm] UpdateTrackRequest request)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (currentUserId != userId.ToString())
@@ -108,38 +109,43 @@ public class TrackController : ControllerBase
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        if (string.IsNullOrWhiteSpace(newTrack.Title) && newTrack.File is null)
+        if (string.IsNullOrWhiteSpace(request.Title) && request.File is null)
             return BadRequest(new { message = "At least one field is required to update (title or file)." });
 
         var currentTrack = await _trackService.GetTrackAsync(userId, trackId);
         if (currentTrack == null)
             return NotFound();
 
+        var updateData = new UpdateTrackDataRequest
+        {
+            Title = request.Title
+        };
+
         var oldFilePath = currentTrack.FilePath;
 
         // If a new file is provided, save it and delete the old one
-        if (newTrack.File is not null)
+        if (request.File is not null)
         {
-            var fileValidation = _fileService.ValidateAudioFile(newTrack.File);
+            var fileValidation = _fileService.ValidateAudioFile(request.File);
             if (!fileValidation.IsValid)
                 return BadRequest(new { message = fileValidation.ErrorMessage });
 
             // Use current title if not updating, otherwise use new title
-            var fileTitle = string.IsNullOrWhiteSpace(newTrack.Title)
+            var fileTitle = string.IsNullOrWhiteSpace(request.Title)
                 ? currentTrack.Title
-                : newTrack.Title;
+                : request.Title;
 
-            newTrack.FilePath = await _fileService.SaveFileAsync(newTrack.File, userId.ToString(), fileTitle);
-            newTrack.FileSize = newTrack.File.Length;
-            newTrack.Format = Path.GetExtension(newTrack.File.FileName).ToLowerInvariant();
-            newTrack.Duration = await _fileService.GetAudioDurationSecondsAsync(newTrack.File) ?? 0;
+            updateData.FilePath = await _fileService.SaveFileAsync(request.File, userId.ToString(), fileTitle);
+            updateData.FileSize = request.File.Length;
+            updateData.Format = Path.GetExtension(request.File.FileName).ToLowerInvariant();
+            updateData.Duration = await _fileService.GetAudioDurationSecondsAsync(request.File) ?? 0;
 
-            var updatedTrack = await _trackService.UpdateTrackAsync(userId, trackId, newTrack);
+            var updatedTrack = await _trackService.UpdateTrackAsync(userId, trackId, updateData);
             if (updatedTrack != null)
                 await _fileService.DeleteFileAsync(oldFilePath);
             else
             {
-                await _fileService.DeleteFileAsync(newTrack.FilePath);
+                await _fileService.DeleteFileAsync(updateData.FilePath!);
                 return NotFound();
             }
 
@@ -147,9 +153,9 @@ public class TrackController : ControllerBase
         }
 
         // If only title is being updated, just update the database
-        if (!string.IsNullOrWhiteSpace(newTrack.Title))
+        if (!string.IsNullOrWhiteSpace(request.Title))
         {
-            var updatedTrack = await _trackService.UpdateTrackAsync(userId, trackId, newTrack);
+            var updatedTrack = await _trackService.UpdateTrackAsync(userId, trackId, updateData);
             if (updatedTrack == null)
                 return NotFound();
 

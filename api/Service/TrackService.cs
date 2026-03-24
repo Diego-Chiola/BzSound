@@ -51,7 +51,7 @@ public class TrackService : ITrackService
         return trackModel;
     }
 
-    public async Task<UpdateTrackRequest?> UpdateTrackAsync(Guid userId, int trackId, UpdateTrackRequest request)
+    public async Task<GetTrackRequest?> UpdateTrackAsync(Guid userId, int trackId, UpdateTrackDataRequest request)
     {
         var existingTrack = await _trackRepository.GetTrackAsync(trackId);
 
@@ -59,7 +59,7 @@ public class TrackService : ITrackService
             return null;
 
         var updatedTrack = await _trackRepository.UpdateTrackAsync(userId, trackId, request);
-        return updatedTrack?.ToUpdateTrackRequestFromTrack();
+        return updatedTrack?.ToGetTrackRequestFromTrack();
     }
 
     public async Task<bool> DeleteTrackAsync(Guid userId, int trackId)

@@ -12,6 +12,6 @@ public interface ITrackService
     Task<IEnumerable<GetTrackRequest>> GetTracksByUserAsync(Guid userId, TrackQueryObject query);
     Task<GetTrackRequest?> GetTrackAsync(Guid userId, int trackId);
     Task<Track> CreateTrackAsync(Guid userId, CreateTrackRequest request);
-    Task<UpdateTrackRequest?> UpdateTrackAsync(Guid userId, int trackId, UpdateTrackRequest request);
+    Task<GetTrackRequest?> UpdateTrackAsync(Guid userId, int trackId, UpdateTrackDataRequest request);
     Task<bool> DeleteTrackAsync(Guid userId, int trackId);
 }

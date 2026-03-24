@@ -13,6 +13,9 @@ public static class TrackMappers
             Title = trackModel.Title,
             LastModified = trackModel.LastModified,
             FilePath = trackModel.FilePath,
+            FileSize = trackModel.FileSize,
+            Format = trackModel.Format,
+            Duration = trackModel.Duration,
         };
     }
     public static Track ToTrackFromCreateTrackRequest(this CreateTrackRequest request, Guid userId)
@@ -26,18 +29,6 @@ public static class TrackMappers
             Format = Path.GetExtension(request.FilePath).ToLowerInvariant(),
             Duration = request.Duration,
             UserId = userId
-        };
-    }
-
-    public static UpdateTrackRequest ToUpdateTrackRequestFromTrack(this Track existingTrack)
-    {
-        return new UpdateTrackRequest
-        {
-            Title = existingTrack.Title,
-            FilePath = existingTrack.FilePath,
-            FileSize = existingTrack.FileSize,
-            Format = existingTrack.Format,
-            Duration = existingTrack.Duration,
         };
     }
 }
