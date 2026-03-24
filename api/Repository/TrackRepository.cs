@@ -57,6 +57,9 @@ public class TrackRepository : ITrackRepository
 
         existingTrack.Title = newTrack.Title ?? existingTrack.Title;
         existingTrack.FilePath = newTrack.FilePath ?? existingTrack.FilePath;
+        existingTrack.FileSize = newTrack.FileSize ?? existingTrack.FileSize;
+        existingTrack.Format = newTrack.Format ?? existingTrack.Format;
+        existingTrack.Duration = newTrack.Duration ?? existingTrack.Duration;
         existingTrack.LastModified = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();

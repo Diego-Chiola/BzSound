@@ -9,8 +9,8 @@ namespace api.Models
         public DateTime LastModified { get; set; } = DateTime.UtcNow;
         public string FilePath { get; set; } = string.Empty;
         public long FileSize { get; set; }
-        public string ContentType { get; set; } = "audio/mpeg";
-        public double? Duration { get; set; } // Duration in seconds
+        public string Format { get; set; } = string.Empty;
+        public long Duration { get; set; }
         public Guid UserId { get; set; }
         // Navigation property to owner
         [ForeignKey(nameof(UserId))]

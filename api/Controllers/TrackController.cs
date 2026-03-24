@@ -13,10 +13,14 @@ namespace api.Controllers;
 public class TrackController : ControllerBase
 {
     private readonly ITrackService _trackService;
+    private readonly IFileService _fileService;
 
-    public TrackController(ITrackService trackService)
+    public TrackController(
+        ITrackService trackService,
+        IFileService fileService)
     {
         _trackService = trackService;
+        _fileService = fileService;
     }
 
     [Authorize]
@@ -55,7 +59,10 @@ public class TrackController : ControllerBase
 
     [Authorize]
     [HttpPost("~/api/users/{userId:guid}/tracks")]
-    public async Task<IActionResult> CreateTrack(Guid userId, [FromBody] CreateTrackRequest newTrack)
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> CreateTrack(
+        Guid userId,
+        [FromForm] UploadTrackRequest request)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (currentUserId != userId.ToString())
@@ -64,24 +71,92 @@ public class TrackController : ControllerBase
         if (!await _trackService.UserExistsAsync(userId))
             return BadRequest("User does not exist.");
 
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        var file = request.File;
+
+        var fileValidation = _fileService.ValidateAudioFile(file);
+        if (!fileValidation.IsValid)
+            return BadRequest(new { message = fileValidation.ErrorMessage });
+
+        var title = request.Title;
+        if (string.IsNullOrWhiteSpace(title))
+            title = Path.GetFileNameWithoutExtension(file.FileName);
+
+        var relativeFilePath = await _fileService.SaveFileAsync(file, userId.ToString(), title);
+
+        var newTrack = new CreateTrackRequest(
+            title: title,
+            filePath: relativeFilePath,
+            fileSize: file.Length,
+            duration: await _fileService.GetAudioDurationSecondsAsync(file) ?? 0);
+
         var trackModel = await _trackService.CreateTrackAsync(userId, newTrack);
         return CreatedAtAction(nameof(GetTrack), new { userId, trackId = trackModel.Id }, trackModel);
     }
 
     [Authorize]
     [HttpPut("~/api/users/{userId:guid}/tracks/{trackId:int}")]
-    public async Task<IActionResult> UpdateTrack(Guid userId, int trackId, [FromBody] UpdateTrackRequest newTrack)
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> UpdateTrack(Guid userId, int trackId, [FromForm] UpdateTrackRequest newTrack)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (currentUserId != userId.ToString())
             return Forbid();
 
-        var existingTrack = await _trackService.UpdateTrackAsync(userId, trackId, newTrack);
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
 
-        if (existingTrack == null)
+        if (string.IsNullOrWhiteSpace(newTrack.Title) && newTrack.File is null)
+            return BadRequest(new { message = "At least one field is required to update (title or file)." });
+
+        var currentTrack = await _trackService.GetTrackAsync(userId, trackId);
+        if (currentTrack == null)
             return NotFound();
 
-        return Ok(existingTrack);
+        var oldFilePath = currentTrack.FilePath;
+
+        // If a new file is provided, save it and delete the old one
+        if (newTrack.File is not null)
+        {
+            var fileValidation = _fileService.ValidateAudioFile(newTrack.File);
+            if (!fileValidation.IsValid)
+                return BadRequest(new { message = fileValidation.ErrorMessage });
+
+            // Use current title if not updating, otherwise use new title
+            var fileTitle = string.IsNullOrWhiteSpace(newTrack.Title)
+                ? currentTrack.Title
+                : newTrack.Title;
+
+            newTrack.FilePath = await _fileService.SaveFileAsync(newTrack.File, userId.ToString(), fileTitle);
+            newTrack.FileSize = newTrack.File.Length;
+            newTrack.Format = Path.GetExtension(newTrack.File.FileName).ToLowerInvariant();
+            newTrack.Duration = await _fileService.GetAudioDurationSecondsAsync(newTrack.File) ?? 0;
+
+            var updatedTrack = await _trackService.UpdateTrackAsync(userId, trackId, newTrack);
+            if (updatedTrack != null)
+                await _fileService.DeleteFileAsync(oldFilePath);
+            else
+            {
+                await _fileService.DeleteFileAsync(newTrack.FilePath);
+                return NotFound();
+            }
+
+            return Ok(updatedTrack);
+        }
+
+        // If only title is being updated, just update the database
+        if (!string.IsNullOrWhiteSpace(newTrack.Title))
+        {
+            var updatedTrack = await _trackService.UpdateTrackAsync(userId, trackId, newTrack);
+            if (updatedTrack == null)
+                return NotFound();
+
+            return Ok(updatedTrack);
+        }
+
+        return NotFound();
     }
 
     [Authorize]
@@ -92,10 +167,17 @@ public class TrackController : ControllerBase
         if (currentUserId != userId.ToString())
             return Forbid();
 
+        var track = await _trackService.GetTrackAsync(userId, trackId);
+        if (track == null)
+            return NotFound();
+
         var deletedTrack = await _trackService.DeleteTrackAsync(userId, trackId);
         if (!deletedTrack)
             return NotFound();
 
+        await _fileService.DeleteFileAsync(track.FilePath);
+
         return NoContent();
     }
+
 }

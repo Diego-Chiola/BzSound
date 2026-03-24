@@ -22,6 +22,9 @@ public static class TrackMappers
             Title = request.Title,
             LastModified = DateTime.UtcNow,
             FilePath = request.FilePath,
+            FileSize = request.FileSize,
+            Format = Path.GetExtension(request.FilePath).ToLowerInvariant(),
+            Duration = request.Duration,
             UserId = userId
         };
     }
@@ -32,6 +35,9 @@ public static class TrackMappers
         {
             Title = existingTrack.Title,
             FilePath = existingTrack.FilePath,
+            FileSize = existingTrack.FileSize,
+            Format = existingTrack.Format,
+            Duration = existingTrack.Duration,
         };
     }
 }
