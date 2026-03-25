@@ -19,8 +19,7 @@ public static class UserMappers
     {
         return new UpdateUserRequest
         {
-            Email = updateUserRequest.Email,
-            PasswordHash = updateUserRequest.PasswordHash
+            Email = updateUserRequest.Email
         };
     }
 }

@@ -33,11 +33,7 @@ public class UserController : ControllerBase
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        Console.WriteLine($"Current User ID from token: {currentUserId}");
-        Console.WriteLine($"Requested ID: {id}");
-        Console.WriteLine($"Match: {currentUserId == id.ToString()}");
-
-        if (currentUserId != id.ToString() && !User.IsInRole("Admin"))
+        if (!User.IsInRole("Admin") && (currentUserId is null || currentUserId != id.ToString()))
             return Forbid();
 
         var user = await _userService.GetUserByIdAsync(id);
@@ -51,8 +47,6 @@ public class UserController : ControllerBase
     public async Task<IActionResult> GetCurrentUser()
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-        Console.WriteLine($"Current User ID from token: {currentUserId}");
 
         if (currentUserId is null)
             return Unauthorized();
@@ -69,7 +63,7 @@ public class UserController : ControllerBase
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        if (currentUserId != id.ToString() && !User.IsInRole("Admin"))
+        if (currentUserId is null || currentUserId != id.ToString())
             return Forbid();
 
         var updatedUser = await _userService.UpdateUserAsync(id, request);
@@ -80,14 +74,29 @@ public class UserController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> DeleteUser(Guid id)
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeleteUserAsAdmin(Guid id)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        if (currentUserId != id.ToString() && !User.IsInRole("Admin"))
-            return Forbid();
+        if (currentUserId == id.ToString())
+            return BadRequest(new { message = "Admins cannot delete their own account from this endpoint. Use DELETE /api/users/me instead." });
 
         var deletedUser = await _userService.DeleteUserAsync(id);
+        if (!deletedUser)
+            return NotFound();
+
+        return NoContent();
+    }
+
+    [HttpDelete("me")]
+    public async Task<IActionResult> DeleteCurrentUser()
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId is null)
+            return Unauthorized();
+
+        var deletedUser = await _userService.DeleteUserAsync(Guid.Parse(currentUserId));
         if (!deletedUser)
             return NotFound();
 

@@ -86,10 +86,11 @@ Unless stated otherwise, endpoints require `Authorization: Bearer <token>`.
 
 Base URL: `/api/auth`
 
-| Method | Endpoint    | Auth | Description             |
-| ------ | ----------- | ---- | ----------------------- |
-| `POST` | `/register` | No   | Register a new account  |
-| `POST` | `/login`    | No   | Login and get JWT token |
+| Method | Endpoint                        | Auth | Description                  |
+| ------ | ------------------------------- | ---- | ---------------------------- |
+| `POST` | `/register`                     | No   | Register a new account       |
+| `POST` | `/login`                        | No   | Login and get JWT token      |
+| `GET`  | `/password-reset?email={email}` | No   | Request password reset email |
 
 #### Register Request
 
@@ -132,8 +133,9 @@ Base URL: `/api/users`
 | `GET`    | `/`      | Admin              | Get paginated users list    |
 | `GET`    | `/{id}`  | Owner or Admin     | Get user by id              |
 | `GET`    | `/me`    | Authenticated user | Get current user from token |
-| `PUT`    | `/{id}`  | Owner or Admin     | Update user email/password  |
-| `DELETE` | `/{id}`  | Owner or Admin     | Delete user                 |
+| `PUT`    | `/{id}`  | Owner              | Update own user data        |
+| `DELETE` | `/{id}`  | Admin              | Delete another user account |
+| `DELETE` | `/me`    | Authenticated user | Delete own account          |
 
 #### Update User Request
 
@@ -141,10 +143,15 @@ Base URL: `/api/users`
 
 ```json
 {
-  "email": "newmail@example.com",
-  "passwordHash": "NewPassword123!"
+  "email": "newmail@example.com"
 }
 ```
+
+#### Delete User Rules
+
+- `DELETE /api/users/{id}` is for admins only.
+- Admins cannot delete their own account from `/{id}` and must use `/me`.
+- `DELETE /api/users/me` deletes the currently authenticated account.
 
 ### Tracks
 

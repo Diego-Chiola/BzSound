@@ -36,4 +36,15 @@ public class AccountController : ControllerBase
 
         return Ok(data);
     }
+
+    [HttpGet("password-reset")]
+    public async Task<IActionResult> RequestPasswordReset([FromQuery] string email)
+    {
+        var (success, error) = await _accountService.RequestPasswordResetAsync(email);
+
+        if (!success)
+            return BadRequest(new { message = error });
+
+        return Ok(new { message = "Password reset link sent if email exists." });
+    }
 }
