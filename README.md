@@ -98,7 +98,6 @@ Base URL: `/api/auth`
 
 ```json
 {
-  "username": "john",
   "email": "john@example.com",
   "password": "StrongPass123!"
 }

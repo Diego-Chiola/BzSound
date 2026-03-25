@@ -1,6 +1,7 @@
 using api.Dtos.Account;
-using api.Interfaces;
 using api.Models;
+
+namespace api.Mappers;
 
 public static class AccountMapper
 {
@@ -8,7 +9,6 @@ public static class AccountMapper
     {
         return new AppUser
         {
-            UserName = registerRequest.Username,
             Email = registerRequest.Email
         };
     }
