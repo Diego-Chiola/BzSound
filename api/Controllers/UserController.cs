@@ -13,10 +13,12 @@ namespace api.Controllers;
 public class UserController : ControllerBase
 {
     private readonly IUserService _userService;
+    private readonly ILogger<UserController> _logger;
 
-    public UserController(IUserService userService)
+    public UserController(IUserService userService, ILogger<UserController> logger)
     {
         _userService = userService;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -74,10 +76,12 @@ public class UserController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteUserAsAdmin(Guid id)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (!User.IsInRole("Admin"))
+            return Forbid();
 
         if (currentUserId == id.ToString())
             return BadRequest(new { message = "Admins cannot delete their own account from this endpoint. Use DELETE /api/users/me instead." });

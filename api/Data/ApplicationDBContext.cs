@@ -24,21 +24,21 @@ public class ApplicationDBContext : IdentityDbContext<AppUser, IdentityRole<Guid
             .HasForeignKey(a => a.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        List<IdentityRole> initialRoles = new List<IdentityRole>
+        List<IdentityRole<Guid>> initialRoles = new List<IdentityRole<Guid>>
         {
-            new IdentityRole
+            new IdentityRole<Guid>
             {
-                Id = "5b2aaae0-bace-408f-869b-0f773b0adbd0",
+                Id = Guid.Parse("5b2aaae0-bace-408f-869b-0f773b0adbd0"),
                 Name = "User",
                 NormalizedName = "USER"
             },
-            new IdentityRole
+            new IdentityRole<Guid>
             {
-                Id = "d390c202-0f2f-4ece-8c77-3a9bfd4fcd45",
+                Id = Guid.Parse("d390c202-0f2f-4ece-8c77-3a9bfd4fcd45"),
                 Name = "Admin",
                 NormalizedName = "ADMIN"
             }
         };
-        modelBuilder.Entity<IdentityRole>().HasData(initialRoles);
+        modelBuilder.Entity<IdentityRole<Guid>>().HasData(initialRoles);
     }
 }

@@ -47,4 +47,15 @@ public class AccountController : ControllerBase
 
         return Ok(new { message = "Password reset link sent if email exists." });
     }
+
+    [HttpGet("confirm-email")]
+    public async Task<IActionResult> ConfirmEmail([FromQuery] string email, [FromQuery] string token)
+    {
+        var (success, error) = await _accountService.ConfirmEmailAsync(email, token);
+
+        if (!success)
+            return BadRequest(new { message = error });
+
+        return Ok(new { message = "Email confirmed successfully." });
+    }
 }

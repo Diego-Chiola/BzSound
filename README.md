@@ -32,9 +32,7 @@ The easiest way to get a SQL Server instance running without installing it local
 **1. Start the container:**
 
 ```bash
-docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=YourStrong!Pass123" \
-  -p 1433:1433 --name bzsound-sql -d \
-  mcr.microsoft.com/mssql/server:2022-latest
+docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=YourStrong!Pass123" -p 1433:1433 --name bzsound-sql -d mcr.microsoft.com/mssql/server:2022-latest
 ```
 
 **2. Apply EF Core migrations:**
@@ -57,7 +55,7 @@ dotnet ef database update
 
 ### Configuration
 
-Update `appsettings.json` with your database connection string and JWT settings:
+Update `appsettings.json` with your database connection string, JWT settings and SMTP Host:
 
 ```json
 {
@@ -68,6 +66,15 @@ Update `appsettings.json` with your database connection string and JWT settings:
     "SigningKey": "your-secret-key",
     "Issuer": "your-issuer",
     "Audience": "your-audience"
+  },
+  "SmtpHost": {
+    "SmtpHost": "smtp.gmail.com",
+    "SmtpPort": 587,
+    "SmtpUsername": "example@gmail.com",
+    "SmtpPassword": "appPassword",
+    "FromEmail": "example@gmail.com",
+    "FromName": "BzSound",
+    "EnableSsl": true
   }
 }
 ```
@@ -77,6 +84,22 @@ Update `appsettings.json` with your database connection string and JWT settings:
 > ```bash
 > dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost,1433;Database=BzSoundDB;User Id=sa;Password=YourStrong!Pass123;TrustServerCertificate=True;"
 > ```
+
+### Bootstrap Admin User
+
+Use the startup bootstrap to create an admin account through Identity APIs.
+
+Add these settings (prefer User Secrets / environment variables in real environments):
+
+```json
+"AdminBootstrap": {
+  "Enabled": true,
+  "Email": "admin@example.com",
+  "Password": "StrongAdminPass123!"
+}
+```
+
+After first successful bootstrap, set `AdminBootstrap:Enabled` back to `false`.
 
 ## API Endpoints
 

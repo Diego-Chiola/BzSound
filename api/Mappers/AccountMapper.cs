@@ -9,7 +9,8 @@ public static class AccountMapper
     {
         return new AppUser
         {
-            Email = registerRequest.Email
+            Email = registerRequest.Email,
+            UserName = registerRequest.Email
         };
     }
 

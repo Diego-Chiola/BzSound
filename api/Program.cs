@@ -10,6 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -71,7 +72,9 @@ builder.Services.AddIdentity<AppUser, IdentityRole<Guid>>(Options =>
     Options.Password.RequireNonAlphanumeric = true;
     Options.Password.RequireUppercase = true;
     Options.Password.RequiredLength = 8;
-}).AddEntityFrameworkStores<ApplicationDBContext>();
+    Options.SignIn.RequireConfirmedEmail = true;
+    Options.Tokens.EmailConfirmationTokenProvider = TokenOptions.DefaultEmailProvider;
+}).AddEntityFrameworkStores<ApplicationDBContext>().AddDefaultTokenProviders();
 
 builder.Services.AddAuthentication(options =>
 {
@@ -96,6 +99,15 @@ builder.Services.AddAuthentication(options =>
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var logger = scope.ServiceProvider
+        .GetRequiredService<ILoggerFactory>()
+        .CreateLogger("AdminBootstrap");
+
+    await AdminBootstrapperService.SeedAsync(scope.ServiceProvider, builder.Configuration, logger);
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
