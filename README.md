@@ -1,5 +1,9 @@
 # BzSound API
 
+<div align="center">
+  <img src="frontend/public/logo.png" alt="BzSound Logo" width="300">
+</div>
+
 A RESTful API for managing user audio tracks, built with ASP.NET Core.
 
 ## Features

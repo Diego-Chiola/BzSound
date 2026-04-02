@@ -30,7 +30,7 @@ public class AccountService : IAccountService
         _dbContext = dbContext;
     }
 
-    public async Task<(bool Success, AuthenticationSuccessResponse? Data, string? Error)> RegisterAsync(RegisterRequest request)
+    public async Task<(bool Success, RegisterSuccessResponse? Data, string? Error)> RegisterAsync(RegisterRequest request)
     {
         using var transaction = await _dbContext.Database.BeginTransactionAsync();
         try
@@ -54,7 +54,7 @@ public class AccountService : IAccountService
             var emailCode = await _userManager.GenerateEmailConfirmationTokenAsync(appUser);
             var validEmailCode = WebEncoders.Base64UrlEncode(System.Text.Encoding.UTF8.GetBytes(emailCode));
 
-            if (!await _emailService.SendEmailConfirmationEmailAsync(appUser.Email!, validEmailCode))
+            if (!await _emailService.SendConfirmationEmailAsync(appUser.Email!, validEmailCode))
             {
                 await transaction.RollbackAsync();
                 return (false, null, "Failed to send email confirmation. Please try again later.");
@@ -62,8 +62,7 @@ public class AccountService : IAccountService
 
             await transaction.CommitAsync();
 
-            var token = await _tokenService.CreateToken(appUser);
-            var response = appUser.ToAuthenticationSuccessResponse(token);
+            var response = new RegisterSuccessResponse();
             return (true, response, null);
         }
         catch (Exception ex)
@@ -73,7 +72,7 @@ public class AccountService : IAccountService
         }
     }
 
-    public async Task<(bool Success, AuthenticationSuccessResponse? Data, string? Error)> LoginAsync(LoginRequest request)
+    public async Task<(bool Success, LoginSuccessResponse? Data, string? Error)> LoginAsync(LoginRequest request)
     {
         var user = await _userManager.FindByEmailAsync(request.Email!);
         if (user == null)
@@ -93,7 +92,7 @@ public class AccountService : IAccountService
         }
 
         var token = await _tokenService.CreateToken(user);
-        var response = new AuthenticationSuccessResponse
+        var response = new LoginSuccessResponse
         {
             Email = user.Email,
             Token = token

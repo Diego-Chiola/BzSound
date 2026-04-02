@@ -14,9 +14,9 @@ public static class AccountMapper
         };
     }
 
-    public static AuthenticationSuccessResponse ToAuthenticationSuccessResponse(this AppUser appUser, string token)
+    public static LoginSuccessResponse ToLoginSuccessResponse(this AppUser appUser, string token)
     {
-        return new AuthenticationSuccessResponse
+        return new LoginSuccessResponse
         {
             Email = appUser.Email,
             Token = token

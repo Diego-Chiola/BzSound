@@ -46,7 +46,7 @@ public class EmailService : IEmailService
             plainTextBody: plainTextBody);
     }
 
-    public async Task<bool> SendEmailConfirmationEmailAsync(string email, string emailConfirmationToken)
+    public async Task<bool> SendConfirmationEmailAsync(string email, string emailConfirmationToken)
     {
         var frontendBaseUrl = _configuration["UrlSettings:FrontendBaseUrl"];
         if (string.IsNullOrWhiteSpace(frontendBaseUrl))
