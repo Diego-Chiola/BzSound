@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import { LoginRequest, RegisterRequest, AuthResponse } from '../types';
+import React, { useState } from "react";
+import axios from "axios";
+import Button from "../common/components/Button";
+import { LoginRequest, RegisterRequest, AuthResponse } from "../types";
 
 interface AuthProps {
   onLogin: (token: string, userId: string) => void;
@@ -10,63 +11,77 @@ interface AuthProps {
 const Auth: React.FC<AuthProps> = ({ onLogin, onClose }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    username: ''
+    email: "",
+    password: "",
+    username: "",
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
-      const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
-      const payload: LoginRequest | RegisterRequest = isLogin 
+      const endpoint = isLogin ? "/api/auth/login" : "/api/auth/register";
+      const payload: LoginRequest | RegisterRequest = isLogin
         ? { email: formData.email, password: formData.password }
-        : { username: formData.username, email: formData.email, password: formData.password };
-      
+        : {
+            username: formData.username,
+            email: formData.email,
+            password: formData.password,
+          };
+
       const response = await axios.post<AuthResponse>(endpoint, payload);
-      
+
       // Decode JWT to get userId
-      const tokenPayload = JSON.parse(atob(response.data.token.split('.')[1]));
+      const tokenPayload = JSON.parse(atob(response.data.token.split(".")[1]));
       const userId = tokenPayload.nameid || tokenPayload.sub;
-      
+
       onLogin(response.data.token, userId);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'An error occurred');
+      setError(err.response?.data?.message || "An error occurred");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50" onClick={onClose}>
-      <div className="bg-white p-10 rounded-2xl max-w-md w-11/12 relative shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <button 
-          className="absolute top-4 right-4 bg-transparent border-none text-4xl cursor-pointer text-gray-400 leading-none hover:text-gray-800"
+    <div
+      className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white p-10 rounded-2xl max-w-md w-11/12 relative shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          className="absolute top-4 right-4 bg-transparent border-none text-4xl cursor-pointer text-gray-400 leading-none hover:text-gray-800 p-0"
           onClick={onClose}
         >
           &times;
         </button>
-        
-        <h2 className="m-0 mb-5 text-primary text-center text-2xl">{isLogin ? 'Login' : 'Register'}</h2>
-        
-        {error && <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-5 text-center">{error}</div>}
-        
-        <form onSubmit={handleSubmit}>
+
+        {error && (
+          <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-5 text-center">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="mt-2">
           {!isLogin && (
             <div className="mb-5">
-              <label className="block mb-1 font-medium text-gray-800">Username</label>
+              <label className="block mb-1 font-medium text-gray-800">
+                Username
+              </label>
               <input
                 type="text"
                 name="username"
@@ -77,9 +92,11 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onClose }) => {
               />
             </div>
           )}
-          
+
           <div className="mb-5">
-            <label className="block mb-1 font-medium text-gray-800">Email</label>
+            <label className="block mb-1 font-medium text-gray-800">
+              Email
+            </label>
             <input
               type="email"
               name="email"
@@ -89,9 +106,11 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onClose }) => {
               className="w-full p-3 border-2 border-gray-300 rounded-lg text-base transition-colors focus:outline-none focus:border-primary"
             />
           </div>
-          
+
           <div className="mb-5">
-            <label className="block mb-1 font-medium text-gray-800">Password</label>
+            <label className="block mb-1 font-medium text-gray-800">
+              Password
+            </label>
             <input
               type="password"
               name="password"
@@ -102,24 +121,24 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onClose }) => {
               className="w-full p-3 border-2 border-gray-300 rounded-lg text-base transition-colors focus:outline-none focus:border-primary"
             />
           </div>
-          
-          <button 
-            type="submit" 
+
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
             disabled={loading}
-            className="w-full p-3.5 bg-primary text-white border-none rounded-lg text-lg font-semibold cursor-pointer transition-all hover:bg-primary-dark hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+            isLoading={loading}
+            className="w-full"
           >
-            {loading ? 'Please wait...' : (isLogin ? 'Login' : 'Register')}
-          </button>
+            {isLogin ? "Login" : "Register"}
+          </Button>
         </form>
-        
+
         <p className="text-center mt-5 text-gray-600">
           {isLogin ? "Don't have an account? " : "Already have an account? "}
-          <button 
-            onClick={() => setIsLogin(!isLogin)}
-            className="bg-transparent border-none text-primary cursor-pointer font-semibold underline hover:text-primary-dark"
-          >
-            {isLogin ? 'Register' : 'Login'}
-          </button>
+          <Button variant="link" onClick={() => setIsLogin(!isLogin)}>
+            {isLogin ? "Register" : "Login"}
+          </Button>
         </p>
       </div>
     </div>
