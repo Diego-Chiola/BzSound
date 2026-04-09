@@ -1,6 +1,6 @@
 # BzSound API
 
-<div align="center">
+<div align="center" style="padding: 20px 0;">
   <img src="frontend/public/logo.png" alt="BzSound Logo" width="300">
 </div>
 

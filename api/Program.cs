@@ -1,5 +1,6 @@
 using api.Data;
 using api.Interfaces;
+using api.Middleware;
 using api.Models;
 using api.Repository;
 using api.Service;
@@ -116,6 +117,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseMiddleware<TokenRefreshMiddleware>();
 
 var uploadsPath = Path.Combine(app.Environment.ContentRootPath, "uploads");
 Directory.CreateDirectory(uploadsPath);

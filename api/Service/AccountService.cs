@@ -30,7 +30,7 @@ public class AccountService : IAccountService
         _dbContext = dbContext;
     }
 
-    public async Task<(bool Success, RegisterSuccessResponse? Data, string? Error)> RegisterAsync(RegisterRequest request)
+    public async Task<RegisterSuccessResponse> RegisterAsync(RegisterRequest request)
     {
         using var transaction = await _dbContext.Database.BeginTransactionAsync();
         try
@@ -41,14 +41,14 @@ public class AccountService : IAccountService
             if (!createdUser.Succeeded)
             {
                 await transaction.RollbackAsync();
-                return (false, null, string.Join(", ", createdUser.Errors.Select(e => e.Description)));
+                return RegisterSuccessResponse.FailureResponse(string.Join(", ", createdUser.Errors.Select(e => e.Description)));
             }
 
             var roleResult = await _userManager.AddToRoleAsync(appUser, "User");
             if (!roleResult.Succeeded)
             {
                 await transaction.RollbackAsync();
-                return (false, null, string.Join(", ", roleResult.Errors.Select(e => e.Description)));
+                return RegisterSuccessResponse.FailureResponse(string.Join(", ", roleResult.Errors.Select(e => e.Description)));
             }
 
             var emailCode = await _userManager.GenerateEmailConfirmationTokenAsync(appUser);
@@ -57,48 +57,43 @@ public class AccountService : IAccountService
             if (!await _emailService.SendConfirmationEmailAsync(appUser.Email!, validEmailCode))
             {
                 await transaction.RollbackAsync();
-                return (false, null, "Failed to send email confirmation. Please try again later.");
+                return RegisterSuccessResponse.FailureResponse("Failed to send email confirmation. Please try again later.");
             }
 
             await transaction.CommitAsync();
 
-            var response = new RegisterSuccessResponse();
-            return (true, response, null);
+            return RegisterSuccessResponse.SuccessResponse();
         }
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
-            return (false, null, $"An error occurred during registration: {ex.Message}");
+            return RegisterSuccessResponse.FailureResponse($"An error occurred during registration: {ex.Message}");
         }
     }
 
-    public async Task<(bool Success, LoginSuccessResponse? Data, string? Error)> LoginAsync(LoginRequest request)
+    public async Task<LoginSuccessResponse> LoginAsync(LoginRequest request)
     {
         var user = await _userManager.FindByEmailAsync(request.Email!);
         if (user == null)
         {
-            return (false, null, "Invalid email or password.");
+            return LoginSuccessResponse.FailureResponse("Invalid email or password.");
         }
 
         if (!user.EmailConfirmed)
         {
-            return (false, null, "Please confirm your email before logging in.");
+            return LoginSuccessResponse.FailureResponse("Please confirm your email before logging in.");
         }
 
         var passwordValid = await _signInManager.CheckPasswordSignInAsync(user, request.Password!, false);
         if (!passwordValid.Succeeded)
         {
-            return (false, null, "Invalid email or password.");
+            return LoginSuccessResponse.FailureResponse("Invalid email or password.");
         }
 
-        var token = await _tokenService.CreateToken(user);
-        var response = new LoginSuccessResponse
-        {
-            Email = user.Email,
-            Token = token
-        };
+        var accessToken = _tokenService.CreateAccessToken(user);
+        var refreshToken = _tokenService.CreateRefreshToken(user);
 
-        return (true, response, null);
+        return LoginSuccessResponse.SuccessResponse(accessToken, refreshToken);
     }
 
     public async Task<PasswordResetResponse> RequestPasswordResetAsync(string email)
@@ -121,17 +116,17 @@ public class AccountService : IAccountService
         return PasswordResetResponse.SuccessResponse();
     }
 
-    public async Task<(bool Success, string? Error)> ConfirmEmailAsync(string email, string token)
+    public async Task<ConfirmEmailResponse> ConfirmEmailAsync(string email, string token)
     {
         var user = await _userManager.FindByEmailAsync(email);
         if (user == null)
         {
-            return (false, "Invalid email.");
+            return ConfirmEmailResponse.FailureResponse("Invalid email.");
         }
 
         if (user.EmailConfirmed)
         {
-            return (true, null);
+            return ConfirmEmailResponse.SuccessResponse();
         }
 
         string decodedToken;
@@ -142,16 +137,46 @@ public class AccountService : IAccountService
         }
         catch (FormatException)
         {
-            return (false, "Invalid confirmation token.");
+            return ConfirmEmailResponse.FailureResponse("Invalid confirmation token.");
         }
 
         var result = await _userManager.ConfirmEmailAsync(user, decodedToken);
         if (!result.Succeeded)
         {
-            return (false, string.Join(", ", result.Errors.Select(e => e.Description)));
+            return ConfirmEmailResponse.FailureResponse(string.Join(", ", result.Errors.Select(e => e.Description)));
         }
 
-        return (true, null);
+        return ConfirmEmailResponse.SuccessResponse();
+    }
+
+    public async Task<RefreshTokenResponse> RefreshTokenAsync(string refreshToken)
+    {
+        if (string.IsNullOrEmpty(refreshToken))
+        {
+            return RefreshTokenResponse.FailureResponse("Refresh token is required.");
+        }
+
+        var principal = _tokenService.ValidateRefreshToken(refreshToken);
+        if (principal == null)
+        {
+            return RefreshTokenResponse.FailureResponse("Invalid or expired refresh token.");
+        }
+
+        var userIdClaim = principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (userIdClaim == null || !Guid.TryParse(userIdClaim, out var userId))
+        {
+            return RefreshTokenResponse.FailureResponse("Invalid token claims.");
+        }
+
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user == null)
+        {
+            return RefreshTokenResponse.FailureResponse("User not found.");
+        }
+
+        var accessToken = _tokenService.CreateAccessToken(user);
+
+        return RefreshTokenResponse.SuccessResponse(accessToken);
     }
 
 }

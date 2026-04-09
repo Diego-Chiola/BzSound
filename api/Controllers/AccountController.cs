@@ -18,23 +18,34 @@ public class AccountController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest registerRequest)
     {
-        var (success, data, error) = await _accountService.RegisterAsync(registerRequest);
+        var (success, error) = await _accountService.RegisterAsync(registerRequest);
 
         if (!success)
             return StatusCode(500, new { message = error });
 
-        return Ok(data);
+        return Ok(new { message = "User registered successfully." });
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest loginRequest)
     {
-        var (success, data, error) = await _accountService.LoginAsync(loginRequest);
+        var (success, accessToken, refreshToken, error) = await _accountService.LoginAsync(loginRequest);
 
         if (!success)
             return Unauthorized(new { message = error });
 
-        return Ok(data);
+        return Ok(new { AccessToken = accessToken, RefreshToken = refreshToken });
+    }
+
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request)
+    {
+        var (success, accessToken, error) = await _accountService.RefreshTokenAsync(request.RefreshToken!);
+
+        if (!success)
+            return Unauthorized(new { message = error });
+
+        return Ok(new { AccessToken = accessToken });
     }
 
     [HttpGet("password-reset")]

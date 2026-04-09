@@ -4,8 +4,9 @@ namespace api.Interfaces;
 
 public interface IAccountService
 {
-    Task<(bool Success, RegisterSuccessResponse? Data, string? Error)> RegisterAsync(RegisterRequest request);
-    Task<(bool Success, LoginSuccessResponse? Data, string? Error)> LoginAsync(LoginRequest request);
+    Task<RegisterSuccessResponse> RegisterAsync(RegisterRequest request);
+    Task<LoginSuccessResponse> LoginAsync(LoginRequest request);
+    Task<RefreshTokenResponse> RefreshTokenAsync(string refreshToken);
     Task<PasswordResetResponse> RequestPasswordResetAsync(string email);
-    Task<(bool Success, string? Error)> ConfirmEmailAsync(string email, string token);
+    Task<ConfirmEmailResponse> ConfirmEmailAsync(string email, string token);
 }

@@ -1,7 +1,13 @@
 namespace api.Dtos.Account;
 
-public class LoginSuccessResponse
+public record LoginSuccessResponse(
+    bool Success,
+    string? AccessToken,
+    string? RefreshToken,
+    string? ErrorMessage = null)
 {
-    public string? Email { get; set; }
-    public string? Token { get; set; }
+    public static LoginSuccessResponse SuccessResponse(string accessToken, string refreshToken)
+        => new(true, accessToken, refreshToken);
+    public static LoginSuccessResponse FailureResponse(string errorMessage)
+        => new(false, null, null, errorMessage);
 }

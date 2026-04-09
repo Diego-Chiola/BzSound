@@ -21,7 +21,49 @@ public class TokenService : ITokenService
         _userManager = userManager;
     }
 
-    public async Task<string> CreateToken(AppUser user)
+    public string CreateRefreshToken(AppUser user)
+    {
+        return CreateToken(user, isRefreshToken: true);
+    }
+
+    public string CreateAccessToken(AppUser user)
+    {
+        return CreateToken(user, isRefreshToken: false);
+    }
+
+    public ClaimsPrincipal? ValidateRefreshToken(string refreshToken)
+    {
+        var tokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = _key,
+            ValidateIssuer = true,
+            ValidIssuer = _config["JWT:Issuer"],
+            ValidateAudience = true,
+            ValidAudience = _config["JWT:Audience"],
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+
+        var tokenHandler = new JwtSecurityTokenHandler();
+
+        try
+        {
+            var principal = tokenHandler.ValidateToken(refreshToken, tokenValidationParameters, out SecurityToken validatedToken);
+
+            var tokenType = principal.FindFirst("type")?.Value;
+            if (tokenType != "refresh")
+                return null;
+
+            return principal;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private string CreateToken(AppUser user, bool isRefreshToken = false)
     {
         var claims = new List<Claim>
         {
@@ -29,10 +71,9 @@ public class TokenService : ITokenService
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
         };
 
-        var userRoles = await _userManager.GetRolesAsync(user);
-        foreach (var role in userRoles)
+        if (isRefreshToken)
         {
-            claims.Add(new Claim(ClaimTypes.Role, role));
+            claims.Add(new Claim("type", "refresh"));
         }
 
         var creds = new SigningCredentials(_key, SecurityAlgorithms.HmacSha512Signature);
@@ -40,7 +81,7 @@ public class TokenService : ITokenService
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
-            Expires = DateTime.Now.AddDays(7),
+            Expires = isRefreshToken ? DateTime.UtcNow.AddDays(7) : DateTime.UtcNow.AddMinutes(15),
             SigningCredentials = creds,
             Issuer = _config["JWT:Issuer"],
             Audience = _config["JWT:Audience"]

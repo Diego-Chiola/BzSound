@@ -1,6 +1,11 @@
 namespace api.Dtos.Account;
 
-public class RegisterSuccessResponse
+public record RegisterSuccessResponse(
+    bool Success,
+    string? ErrorMessage = null)
 {
-    public string Message { get; set; } = "Registration successful. Please check your email to confirm your account.";
+    public static RegisterSuccessResponse SuccessResponse()
+        => new(true);
+    public static RegisterSuccessResponse FailureResponse(string errorMessage)
+        => new(false, errorMessage);
 }
